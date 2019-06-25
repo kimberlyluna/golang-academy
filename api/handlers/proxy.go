@@ -1,7 +1,11 @@
 package handlers
 
-import "github.com/kataras/iris"
-import middleware "github.com/kimberly.luna/proxy-app/api/middleware"
+import (
+	"encoding/json"
+
+	"github.com/kataras/iris"
+	middleware "github.com/kimberly.luna/proxy-app/api/middleware"
+)
 
 // HandlerRedirection should redirect traffic
 func HandlerRedirection(app *iris.Application) {
@@ -9,5 +13,10 @@ func HandlerRedirection(app *iris.Application) {
 }
 
 func proxyHandler(c iris.Context) {
-	c.JSON(iris.Map{"result": "ok"})
+	response, err := json.Marshal(middleware.Que)
+	if err != nil {
+		c.JSON(iris.Map{"status": 400, "result": "parse error"})
+		return
+	}
+	c.JSON(iris.Map{"result": string(response)})
 }
