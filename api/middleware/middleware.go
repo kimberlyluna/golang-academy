@@ -42,6 +42,16 @@ func MockQueue() []*Queue {
 			Weight:   5,
 			Priority: 1,
 		},
+		{
+			Domain:   "alpha",
+			Weight:   10,
+			Priority: 6,
+		},
+		{
+			Domain:   "beta",
+			Weight:   1,
+			Priority: 4,
+		},
 	}
 }
 
@@ -50,10 +60,44 @@ func InitQueue() {
 	Que = append(Que, &Queue{})
 }
 
+func onLowSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x < 5 && y < 5
+}
+
+func onMediumSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x >= 5 && y <= 5 || y >= 5 && x <= 5
+}
+
+func onHighSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x >= 6 && y >= 6
+}
+
 // ProxyMiddleware kdk
 func ProxyMiddleware(c iris.Context) {
-	c.GetHeader("domain")
+	domain := c.GetHeader("domain")
 	var repo Repository
 	repo = &Queue{}
-	fmt.Println(repo.Read())
+
+	mediumPriority := []*Queue{}
+	lowPriority := []*Queue{}
+
+	fmt.Println("From header ", domain)
+	for _, row := range repo.Read() {
+		fmt.Println("From source ", row.Domain)
+		if onHighSegment(row.Priority, row.Weight) {
+		} else if onMediumSegment(row.Priority, row.Weight) {
+			mediumPriority = append(mediumPriority, row)
+		} else if onLowSegment(row.Priority, row.Weight) {
+			lowPriority = append(lowPriority, row)
+		}
+	}
+
+	for _, s := range mediumPriority {
+		fmt.Print("MEdum ", s)
+	}
+
+	c.Next()
 }
