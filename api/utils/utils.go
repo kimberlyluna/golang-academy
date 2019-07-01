@@ -5,8 +5,6 @@ import (
 )
 
 // LoadEnv should load .env file
-func LoadEnv(){
+func LoadEnv() {
 	env.Load()
-	///Users/kimberly.luna/go/src/github.com/kimberly.luna/proxy-app/.env
-	// fmt.Println(os.Getenv("PORT"))
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 
 	"github.com/kataras/iris"
@@ -16,6 +17,11 @@ import (
 type Queue struct {
 	Domain   string
 	Weight   int
+	Priority int
+}
+
+type Node struct {
+	Domain   string
 	Priority int
 }
 
@@ -37,78 +43,85 @@ func (q *Queue) Read() []*Queue {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		if scanner.Text() == "" {
-			fmt.Println("OUT", scanner.Text())
 			//reading a whitespace
 			continue
-		}
-		currentLine := scanner.Text()
-		isWeight, _ := regexp.MatchString("weight", currentLine)
-		isPriority, _ := regexp.MatchString("priority", currentLine)
-
-		reg := regexp.MustCompile("[0-9]")
-
-		if isWeight {
-			tempNode.Weight, _ = strconv.Atoi(reg.FindString(currentLine))
-		} else if isPriority {
-
-			// add to dataStructure
-			tempNode.Priority, _ = strconv.Atoi(reg.FindString(currentLine))
-			newNode := Queue{tempNode.Domain, tempNode.Weight, tempNode.Priority}
-			dataStructure = append(dataStructure, &newNode)
-
 		} else {
-			// is domain name
-			tempNode.Domain = currentLine
+			currentLine := scanner.Text()
 
+			isWeight, _ := regexp.MatchString("weight", currentLine)
+			isPriority, _ := regexp.MatchString("priority", currentLine)
+
+			numRegex := regexp.MustCompile("[0-9]")
+
+			if isWeight {
+				tempNode.Weight, _ = strconv.Atoi(numRegex.FindString(currentLine))
+			} else if isPriority {
+				tempNode.Priority, _ = strconv.Atoi(numRegex.FindString(currentLine))
+				newNode := Queue{tempNode.Domain, tempNode.Weight, tempNode.Priority}
+				dataStructure = append(dataStructure, &newNode)
+			} else {
+				tempNode.Domain = currentLine
+			}
 		}
-		fmt.Println(" ")
 	}
 	return dataStructure
 }
 
-// MockQueue should mock an Array of Queues
-func MockQueue() []*Queue {
-	return []*Queue{
-		{
-			Domain:   "alpha",
-			Weight:   5,
-			Priority: 5,
-		},
-		{
-			Domain:   "omega",
-			Weight:   1,
-			Priority: 5,
-		},
-		{
-			Domain:   "beta",
-			Weight:   5,
-			Priority: 1,
-		},
-	}
+func onLowSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x < 5 && y < 5
+}
+
+func onMediumSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x >= 5 && y <= 5 || y >= 5 && x <= 5
+}
+
+func onHighSegment(priority int, weight int) bool {
+	x, y := priority, weight
+	return x >= 6 && y >= 6
 }
 
 // ProxyMiddleware should queue our incoming requests
 func ProxyMiddleware(c iris.Context) {
 	domain := c.GetHeader("domain")
+
 	if len(domain) == 0 {
 		c.JSON(iris.Map{"status": 400, "result": "error"})
 		return
 	}
-	var repo Repository
-	repo = &Queue{}
-	fmt.Println("FROM HEADER", domain)
+	var repository Repository
+	repository = &Queue{}
 
-	// read from texfile
-	for _, row := range repo.Read() {
-		fmt.Println("hey ", row.Domain, row.Priority, row.Weight)
+	var nodeQueue = []*Node{}
+	var priority int
+
+	fmt.Println("@#@#$#$", domain)
+
+	for _, row := range repository.Read() {
+		if onLowSegment(row.Priority, row.Weight) {
+			priority = 1
+		} else if onMediumSegment(row.Priority, row.Weight) {
+			priority = 2
+		} else if onHighSegment(row.Priority, row.Weight) {
+			priority = 3
+		}
+		nodeQueue = append(nodeQueue, &Node{row.Domain, priority})
 	}
 
-	// El queue final
-	Que = append(Que, domain)
+	sort.Slice(nodeQueue, func(i, j int) bool {
+		return nodeQueue[i].Priority > nodeQueue[j].Priority
+	})
+
+	for _, node := range nodeQueue {
+		Que = append(Que, node.Domain)
+	}
 
 	c.Next()
 }
