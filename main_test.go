@@ -47,8 +47,9 @@ func TestAlgorithm(t *testing.T) {
 		Output string
 	}{
 		//structs
-		{Domain: "alpha", Output: `["alpha"]`},
-		{Domain: "beta", Output: `["beta, alpha"]`},
+		{Domain: "alpha", Output: `["alpha"]`}, // Just returns alpha since it's the first element
+		{Domain: "beta", Output: `["beta","alpha"]`},
+		{Domain: "delta", Output: `["beta","alpha","delta"]`},
 		{Domain: "", Output: "domain error"},
 	}
 
@@ -64,7 +65,7 @@ func TestAlgorithm(t *testing.T) {
 		bytes, err := ioutil.ReadAll(response.Body)
 		err = json.Unmarshal(bytes, valuesToCompare)
 
-		fmt.Println("HEY ", valuesToCompare)
+		// fmt.Println("HEY ", valuesToCompare)
 		assert.Nil(t, err)
 		assert.Equal(t, singleCase.Output, valuesToCompare.Response)
 	}

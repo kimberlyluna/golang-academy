@@ -14,9 +14,9 @@ func HandlerRedirection(app *iris.Application) {
 }
 
 func proxyHandler(c iris.Context) {
-	response, err := json.Marshal(middleware.Que)
+	response, err := json.Marshal(middleware.Queue)
 
-	fmt.Println("proxy handler ", middleware.Que)
+	fmt.Println("Result in proxy handler ", middleware.Queue)
 	if err != nil {
 		c.JSON(iris.Map{"status": 400, "result": "parse error"})
 		return

@@ -1,92 +1,23 @@
 package middleware
 
 import (
-	"bufio"
-	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"regexp"
 	"sort"
-	"strconv"
 
 	"github.com/kataras/iris"
+	"github.com/kimberly.luna/proxy-app/api/utils"
 )
 
-// Queue
-type Queue struct {
-	Domain   string
-	Weight   int
-	Priority int
-}
-
+// Node used for sorting
 type Node struct {
 	Domain   string
 	Priority int
 }
 
-// Que declaration
-var Que []string
+// Queue declaration
+var Queue []string
 
-// Repository should implement common methods
-type Repository interface {
-	Read() []*Queue
-}
-
-func (q *Queue) Read() []*Queue {
-	path, _ := filepath.Abs("")
-	file, err := os.Open(path + "/api/middleware/domain.txt")
-
-	var dataStructure = []*Queue{}
-	tempNode := Queue{}
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		if scanner.Text() == "" {
-			//reading a whitespace
-			continue
-		} else {
-			currentLine := scanner.Text()
-
-			isWeight, _ := regexp.MatchString("weight", currentLine)
-			isPriority, _ := regexp.MatchString("priority", currentLine)
-
-			numRegex := regexp.MustCompile("[0-9]")
-
-			if isWeight {
-				tempNode.Weight, _ = strconv.Atoi(numRegex.FindString(currentLine))
-			} else if isPriority {
-				tempNode.Priority, _ = strconv.Atoi(numRegex.FindString(currentLine))
-				newNode := Queue{tempNode.Domain, tempNode.Weight, tempNode.Priority}
-				dataStructure = append(dataStructure, &newNode)
-			} else {
-				tempNode.Domain = currentLine
-			}
-		}
-	}
-	return dataStructure
-}
-
-func onLowSegment(priority int, weight int) bool {
-	x, y := priority, weight
-	return x < 5 && y < 5
-}
-
-func onMediumSegment(priority int, weight int) bool {
-	x, y := priority, weight
-	return x >= 5 && y <= 5 || y >= 5 && x <= 5
-}
-
-func onHighSegment(priority int, weight int) bool {
-	x, y := priority, weight
-	return x >= 6 && y >= 6
-}
+// nodeQueue a temporary node array used for sorting by priority
+var nodeQueue = []*Node{}
 
 // ProxyMiddleware should queue our incoming requests
 func ProxyMiddleware(c iris.Context) {
@@ -96,32 +27,22 @@ func ProxyMiddleware(c iris.Context) {
 		c.JSON(iris.Map{"status": 400, "result": "error"})
 		return
 	}
-	var repository Repository
-	repository = &Queue{}
 
-	var nodeQueue = []*Node{}
-	var priority int
+	// Add a new node into the the queue
+	nodeQueue = append(nodeQueue, &Node{domain, utils.GetDomainPriority(domain)})
 
-	fmt.Println("@#@#$#$", domain)
-
-	for _, row := range repository.Read() {
-		if onLowSegment(row.Priority, row.Weight) {
-			priority = 1
-		} else if onMediumSegment(row.Priority, row.Weight) {
-			priority = 2
-		} else if onHighSegment(row.Priority, row.Weight) {
-			priority = 3
-		}
-		nodeQueue = append(nodeQueue, &Node{row.Domain, priority})
-	}
-
+	// Sorts nodeQueue decreasingly from highest priority to lowest priority
 	sort.Slice(nodeQueue, func(i, j int) bool {
 		return nodeQueue[i].Priority > nodeQueue[j].Priority
 	})
 
+	// 'Map' the domain names after sorting
+	Queue = Queue[:0]
 	for _, node := range nodeQueue {
-		Que = append(Que, node.Domain)
+		Queue = append(Queue, node.Domain)
 	}
+
+	// Doubt: then if a request gets solved it should be removed into both the nodeQueue and the Queue to avoid possible conflicts
 
 	c.Next()
 }
