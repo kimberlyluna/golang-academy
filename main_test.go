@@ -50,14 +50,13 @@ func TestAlgorithm(t *testing.T) {
 		{Domain: "alpha", Output: `["alpha"]`}, // Just returns alpha since it's the first element
 		{Domain: "beta", Output: `["beta","alpha"]`},
 		{Domain: "delta", Output: `["beta","alpha","delta"]`},
-		{Domain: "", Output: "domain error"},
+		{Domain: "", Output: "Domain error"},
 	}
 
 	valuesToCompare := &Response{}
 	client := http.Client{}
 
 	for _, singleCase := range cases {
-		fmt.Println("domain: ", singleCase.Domain)
 		req, err := http.NewRequest("GET", "http://localhost:8080/ping", nil)
 		req.Header.Add("domain", singleCase.Domain)
 
@@ -65,8 +64,13 @@ func TestAlgorithm(t *testing.T) {
 		bytes, err := ioutil.ReadAll(response.Body)
 		err = json.Unmarshal(bytes, valuesToCompare)
 
-		// fmt.Println("HEY ", valuesToCompare)
-		assert.Nil(t, err)
+		if singleCase.Domain != "" {
+			assert.Nil(t, err)
+		} else {
+			// raises error
+			assert.NotNil(t, err)
+		}
+
 		assert.Equal(t, singleCase.Output, valuesToCompare.Response)
 	}
 

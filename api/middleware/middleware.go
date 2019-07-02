@@ -24,7 +24,7 @@ func ProxyMiddleware(c iris.Context) {
 	domain := c.GetHeader("domain")
 
 	if len(domain) == 0 {
-		c.JSON(iris.Map{"status": 400, "result": "error"})
+		c.JSON(iris.Map{"status": 400, "result": "Domain error"})
 		return
 	}
 

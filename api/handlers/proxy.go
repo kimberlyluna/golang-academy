@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/kataras/iris"
 	middleware "github.com/kimberly.luna/proxy-app/api/middleware"
@@ -15,8 +14,6 @@ func HandlerRedirection(app *iris.Application) {
 
 func proxyHandler(c iris.Context) {
 	response, err := json.Marshal(middleware.Queue)
-
-	fmt.Println("Result in proxy handler ", middleware.Queue)
 	if err != nil {
 		c.JSON(iris.Map{"status": 400, "result": "parse error"})
 		return
