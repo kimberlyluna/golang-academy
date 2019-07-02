@@ -17,5 +17,7 @@ Once the server is up and running, start making requests by using the following 
 
 Run the tests of the project by using the command `go test ./`on the root directory
 
+### Generate requests
 
+Run the following curl command on any terminal `curl -H 'domain: delta' http://localhost:8080/ping`
 
